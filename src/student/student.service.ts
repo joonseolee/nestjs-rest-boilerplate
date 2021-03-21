@@ -1,26 +1,41 @@
-import { Injectable } from '@nestjs/common';
+import { CACHE_MANAGER, Inject, Injectable } from '@nestjs/common';
 import { CreateStudentDto } from './dto/create-student.dto';
-import { UpdateStudentDto } from './dto/update-student.dto';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Cache } from 'cache-manager';
+import { Student } from './entities/student.entity';
+import { type } from 'os';
 
 @Injectable()
 export class StudentService {
-  create(createStudentDto: CreateStudentDto) {
-    return 'This action adds a new student';
+  constructor(
+    @InjectRepository(Student)
+    private studentRepository: Repository<Student>,
+    /**
+     * 캐시 사용을 위해 의존 주입
+     */
+    @Inject(CACHE_MANAGER)
+    private cacheManager: Cache,
+  ) {}
+
+  async create(createStudentDto: CreateStudentDto) {
+    await this.studentRepository.save(createStudentDto);
   }
 
-  findAll() {
-    return `This action returns all student`;
+  findAll(): Promise<Student[]> {
+    return this.studentRepository.find();
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} student`;
+  async findOne(id: number) {
+    const value: Student = await this.cacheManager.get(String(id));
+    if (value instanceof Student) return value;
+    const student: Student = await this.studentRepository.findOne(id);
+    this.cacheManager.set(id + '', student, { ttl: 1000 });
+    return student;
   }
 
-  update(id: number, updateStudentDto: UpdateStudentDto) {
-    return `This action updates a #${id} student`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} student`;
+  async remove(id: number) {
+    const student: Student = await this.studentRepository.findOne(id);
+    await this.studentRepository.remove(student);
   }
 }

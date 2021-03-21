@@ -1,15 +1,8 @@
 db:
   main:
-    master:
-      url: localhost
-      port: 3306
-      database: test1
-      username: root
-      password: password
-    slave:
-      url: localhost
-      port: 3307
-      database: test1
-      username: root
-      password: password
+    url: localhost
+    port: 3306
+    database: test1
+    username: root
+    password: password
 
